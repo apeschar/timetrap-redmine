@@ -15,10 +15,10 @@ class Timetrap::Formatters::Redmine
         status = Hash.new(0)
         entries.each {|e| status[process(e)] += 1}
 
-        STDERR.puts " % 4d created"   % status[:created]
-        STDERR.puts " % 4d updated"   % status[:updated]
-        STDERR.puts " % 4d unchanged" % status[:unchanged]
-        STDERR.puts " % 4d error(s)"  % status[:error]
+        STDERR.puts "" if status.length
+
+        STDERR.puts "error unchanged created updated"
+        STDERR.puts "%5d %9d %7d %7d" % [status[:error], status[:unchanged], status[:created], status[:updated]]
 
         exit
     end
@@ -44,12 +44,6 @@ class Timetrap::Formatters::Redmine
 
         redmine_entry = find_redmine_entry(prefix)
 
-        return :unchanged if redmine_entry &&
-                             redmine_entry.issue.id == time_entry[:issue_id] &&
-                             redmine_entry.comments == time_entry[:comments] &&
-                             redmine_entry.spent_on == time_entry[:spent_on] &&
-                             ((redmine_entry.hours || '0.0').to_f - time_entry[:hours]).abs < 0.01
-
         begin
             issue = TimetrapRedmine::API::Issue.find(issue_id)
         rescue ActiveResource::ResourceNotFound
@@ -60,18 +54,30 @@ class Timetrap::Formatters::Redmine
             return :error
         end
 
-        operation = redmine_entry ? :updated : :created
+        if redmine_entry &&
+           redmine_entry.issue.id == time_entry[:issue_id] &&
+           redmine_entry.comments == time_entry[:comments] &&
+           redmine_entry.spent_on == time_entry[:spent_on] &&
+           ((redmine_entry.hours || '0.0').to_f - time_entry[:hours]).abs < 0.01
+            operation = :unchanged
+        elsif redmine_entry
+            operation = :updated
+        else
+            operation = :created
+        end
 
-        line = "%s %s % 5.2f " % [
-            operation == :updated ? 'upd' : 'add',
+        line = "% 3s %s % 5.2f " % [
+            {:unchanged => '', :updated => 'upd', :created => 'add'}[operation],
             time_entry[:spent_on],
             time_entry[:hours]
         ]
         line += "##{issue.id}: #{issue.subject}"[0, 80 - line.length]
         STDERR.puts(line)
 
-        redmine_entry = TimetrapRedmine::API::TimeEntry.new unless redmine_entry
-        redmine_entry.update_attributes(time_entry)
+        unless operation == :unchanged
+            redmine_entry = TimetrapRedmine::API::TimeEntry.new unless redmine_entry
+            redmine_entry.update_attributes(time_entry)
+        end
 
         return operation
     end
