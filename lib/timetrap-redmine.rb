@@ -9,6 +9,7 @@ class Timetrap::Formatters::Redmine
         TimetrapRedmine::API::Resource.password = Timetrap::Config['redmine']['password']
 
         @entries = entries
+        @issues = {}
     end
 
     def output
@@ -42,10 +43,10 @@ class Timetrap::Formatters::Redmine
             :hours    => entry.duration / 3600.0,
         }
 
-        redmine_entry = find_redmine_entry(prefix)
+        redmine_entry = find_entry(prefix)
 
         begin
-            issue = TimetrapRedmine::API::Issue.find(issue_id)
+            issue = find_issue(issue_id)
         rescue ActiveResource::ResourceNotFound
             STDERR.puts "Error: no such issue: #{issue_id}"
             return :error
@@ -82,12 +83,16 @@ class Timetrap::Formatters::Redmine
         return operation
     end
 
-    def find_redmine_entry(prefix)
+    def find_entry(prefix)
         TimetrapRedmine::API::TimeEntry.find(:all, :params => {
             :f     => ['comments', 'user_id'],
             :op    => {:comments => '~', 'user_id' => '='},
             :v     => {:comments => [prefix], 'user_id' => ['me']},
             :sort  => 'id',
         }).find {|e| e.comments.start_with?(prefix)}
+    end
+
+    def find_issue(issue_id)
+        return @issues[issue_id] ||= TimetrapRedmine::API::Issue.find(issue_id)
     end
 end
