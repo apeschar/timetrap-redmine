@@ -17,6 +17,8 @@ class Timetrap::Formatters::Redmine
         threads << Thread.new do
             @issues = {}
             TimetrapRedmine::API::Issue.find(:all, :params => {
+                :f     => ['status'],
+                :op    => [:status => '*'],
                 :sort  => 'id:desc',
                 :limit => 100,
             }).each do |i|
