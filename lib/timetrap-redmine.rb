@@ -1,3 +1,5 @@
+require 'thread'
+
 require_relative './timetrap_redmine/api'
 
 class Timetrap::Formatters::Redmine
@@ -10,21 +12,29 @@ class Timetrap::Formatters::Redmine
 
         @entries = entries
 
-        @issues = {}
-        TimetrapRedmine::API::Issue.find(:all, :params => {
-            :sort  => 'id:desc',
-            :limit => 100,
-        }).each do |i|
-            @issues[i.id] = i
+        threads = []
+
+        threads << Thread.new do
+            @issues = {}
+            TimetrapRedmine::API::Issue.find(:all, :params => {
+                :sort  => 'id:desc',
+                :limit => 100,
+            }).each do |i|
+                @issues[i.id] = i
+            end
         end
 
-        @rm_entries = TimetrapRedmine::API::TimeEntry.find(:all, :params => {
-            :f     => ['comments', 'user_id'],
-            :op    => {:comments => '~', 'user_id' => '='},
-            :v     => {:comments => ['[tt '], 'user_id' => ['me']},
-            :sort  => 'id:desc',
-            :limit => 100,
-        })
+        threads << Thread.new do
+            @rm_entries = TimetrapRedmine::API::TimeEntry.find(:all, :params => {
+                :f     => ['comments', 'user_id'],
+                :op    => {:comments => '~', 'user_id' => '='},
+                :v     => {:comments => ['[tt '], 'user_id' => ['me']},
+                :sort  => 'id:desc',
+                :limit => 100,
+            })
+        end
+
+        threads.each(&:join)
     end
 
     def output
