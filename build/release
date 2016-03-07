@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+if [[ -n "$(git status --porcelain)" ]]; then
+    echo "There are unstaged or uncommitted changes. Aborting..." >&2
+    exit 1
+fi
+
+rm -rf dist
+mkdir dist
+
+cd dist
+gem build ../timetrap-redmine.gemspec
+gem push timetrap-redmine-*.gem
