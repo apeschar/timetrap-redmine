@@ -9,7 +9,22 @@ class Timetrap::Formatters::Redmine
         TimetrapRedmine::API::Resource.password = Timetrap::Config['redmine']['password']
 
         @entries = entries
+
         @issues = {}
+        TimetrapRedmine::API::Issue.find(:all, :params => {
+            :sort  => 'id:desc',
+            :limit => 100,
+        }).each do |i|
+            @issues[i.id] = i
+        end
+
+        @rm_entries = TimetrapRedmine::API::TimeEntry.find(:all, :params => {
+            :f     => ['comments', 'user_id'],
+            :op    => {:comments => '~', 'user_id' => '='},
+            :v     => {:comments => ['[tt '], 'user_id' => ['me']},
+            :sort  => 'id:desc',
+            :limit => 100,
+        })
     end
 
     def output
@@ -84,12 +99,14 @@ class Timetrap::Formatters::Redmine
     end
 
     def find_entry(prefix)
-        TimetrapRedmine::API::TimeEntry.find(:all, :params => {
+        match = lambda {|e| e.comments.start_with?(prefix)}
+
+        @rm_entries.find(&match) || TimetrapRedmine::API::TimeEntry.find(:all, :params => {
             :f     => ['comments', 'user_id'],
             :op    => {:comments => '~', 'user_id' => '='},
             :v     => {:comments => [prefix], 'user_id' => ['me']},
             :sort  => 'id',
-        }).find {|e| e.comments.start_with?(prefix)}
+        }).find(&match)
     end
 
     def find_issue(issue_id)
