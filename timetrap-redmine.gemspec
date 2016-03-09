@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
     s.name        = 'timetrap-redmine'
-    s.version     = '1.0.1'
+    s.version     = '1.0.2'
     s.date        = '2016-03-06'
     s.summary     = "Sync timetrap to Redmine"
     s.description = "This timetrap formatter creates Redmine timelog entries"

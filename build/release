@@ -9,9 +9,6 @@ if [[ -n "$(git status --porcelain)" ]]; then
     exit 1
 fi
 
-rm -rf dist
-mkdir dist
-
-cd dist
-gem build ../timetrap-redmine.gemspec
+rm -f timetrap-redmine-*.gem
+gem build timetrap-redmine.gemspec
 gem push timetrap-redmine-*.gem
