@@ -48,7 +48,11 @@ class Timetrap::Formatters::Redmine
         STDERR.puts "error unchanged created updated"
         STDERR.puts "%5d %9d %7d %7d" % [status[:error], status[:unchanged], status[:created], status[:updated]]
 
-        exit
+        if status[:error] > 0
+            exit 1
+        else
+            exit
+        end
     end
 
     private
