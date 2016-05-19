@@ -58,7 +58,10 @@ class Timetrap::Formatters::Redmine
     private
 
     def process(entry)
-        return unless match = /^([0-9]+)(?:\s+(.+?))?\s*$/.match(entry.note)
+        unless match = /^([0-9]+)(?:\s+(.+?))?\s*$/.match(entry.note)
+            STDERR.puts "Error: not an issue number: #{entry.note}"
+            return :error
+        end
 
         issue_id = match[1]
         comments = match[2] || ''
